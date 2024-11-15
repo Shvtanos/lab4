@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Xml.Serialization;
 
 public class Collection
@@ -24,13 +25,13 @@ public class Collection
         return list;
     }
 
-    // Задание 2: Вставить элемент F слева и справа от каждого элемента E
-    public static LinkedList<double> InsertAroundElement(LinkedList<double> list, double e, double f)
+    // Задание 2: Вставить элемент F слева и справа от каждого элемента E (обобщенная версия)
+    public static LinkedList<T> InsertAroundElement<T>(LinkedList<T> list, T e, T f)
     {
         var node = list.First;
         while (node != null)
         {
-            if (node.Value == e)
+            if (EqualityComparer<T>.Default.Equals(node.Value, e))
             {
                 list.AddBefore(node, f);
                 node = list.AddAfter(node, f).Next;
@@ -107,19 +108,88 @@ public class Collection
         Console.WriteLine("Символы в алфавитном порядке: " + string.Join(", ", sortedCharacters)); // Выводим отсортированные символы
     }
 
+    // Задание 5
+    // Метод для генерации исходного файла с данными абитуриентов через ввод пользователя
+    public static void GenerateApplicantData(string filePath)
+    {
+        Console.Write("Введите количество абитуриентов: ");
+        int count;
+
+        // Проверка корректности ввода количества абитуриентов
+        while (!int.TryParse(Console.ReadLine(), out count) || count <= 0)
+        {
+            Console.Write("Некорректное значение! Введите положительное целое число: ");
+        }
+
+        using (StreamWriter writer = new StreamWriter(filePath))
+        {
+            writer.WriteLine(count); // Записываем количество абитуриентов в первую строку файла
+
+            for (int i = 0; i < count; i++)
+            {
+                Console.WriteLine($"\nВведите данные для абитуриента #{i + 1}:");
+
+                // Запрашиваем фамилию и проверяем, что это только буквы
+                string lastName;
+                while (true)
+                {
+                    Console.Write("Фамилия: ");
+                    lastName = Console.ReadLine();
+                    if (Regex.IsMatch(lastName, @"^[a-zA-Zа-яА-Я]+$"))
+                        break;
+                    Console.WriteLine("Некорректная фамилия! Используйте только буквы.");
+                }
+
+                // Запрашиваем имя и проверяем, что это только буквы
+                string firstName;
+                while (true)
+                {
+                    Console.Write("Имя: ");
+                    firstName = Console.ReadLine();
+                    if (Regex.IsMatch(firstName, @"^[a-zA-Zа-яА-Я]+$"))
+                        break;
+                    Console.WriteLine("Некорректное имя! Используйте только буквы.");
+                }
+
+                // Запрашиваем и проверяем баллы, чтобы они были целыми числами от 0 до 100
+                int score1 = ProvScore("Балл 1");
+                int score2 = ProvScore("Балл 2");
+                int score3 = ProvScore("Балл 3");
+
+                // Записываем данные абитуриента в файл
+                writer.WriteLine($"{lastName} {firstName} {score1} {score2} {score3}");
+            }
+        }
+
+        Console.WriteLine("Исходный файл с данными абитуриентов успешно создан.");
+    }
+
+    // Метод для ввода и проверки баллов
+    private static int ProvScore(string prompt)
+    {
+        int score;
+        while (true)
+        {
+            Console.Write($"{prompt}: ");
+            if (int.TryParse(Console.ReadLine(), out score) && score >= 0 && score <= 100)
+                return score;
+            Console.WriteLine("Некорректное значение! Введите целое число от 0 до 100.");
+        }
+    }
+
     // Задание 5: Обработка данных абитуриентов
     public static void ProcessApplicants(string inputFilePath, string outputFilePath)
     {
         // Словарь для хранения абитуриентов, где ключ - уникальный идентификатор (например, фамилия + имя)
         Dictionary<string, Applicant> applicants = new Dictionary<string, Applicant>();
 
-        using (StreamReader reader = new StreamReader(inputFilePath)) // Открываем файл для чтения
+        using (StreamReader reader = new StreamReader(inputFilePath))
         {
-            int count = int.Parse(reader.ReadLine()); // Читаем количество абитуриентов
+            int count = int.Parse(reader.ReadLine());
 
-            for (int i = 0; i < count; i++) // Перебираем данные всех абитуриентов
+            for (int i = 0; i < count; i++)
             {
-                string[] parts = reader.ReadLine().Split(' '); // Разбиваем строку на части (фамилия, имя, баллы)
+                string[] parts = reader.ReadLine().Split(' ');
                 string lastName = parts[0];
                 string firstName = parts[1];
                 int score1 = int.Parse(parts[2]);
@@ -133,7 +203,7 @@ public class Collection
                 int sum = score1 + score2 + score3;
                 if (score1 >= 30 && score2 >= 30 && score3 >= 30 && sum >= 140)
                 {
-                    // Добавляем абитуриента в словарь с уникальным ключом
+                    // Добавляем абитуриента в словарь
                     applicants[key] = new Applicant
                     {
                         LastName = lastName,
@@ -147,20 +217,23 @@ public class Collection
         }
 
         // Сортируем абитуриентов по фамилии в алфавитном порядке для вывода
-        var sortedApplicants = applicants.Values.OrderBy(applicant => applicant.LastName).ThenBy(applicant => applicant.FirstName).ToList(); // Сортируем абитуриентов по фамилии и имени, используя LINQ
+        var sortedApplicants = applicants.Values
+            .OrderBy(applicant => applicant.LastName)
+            .ThenBy(applicant => applicant.FirstName)
+            .ToList();
 
         // Сериализация и сохранение в XML
-        XmlSerializer serializer = new XmlSerializer(typeof(List<Applicant>)); // Создаем объект сериализатора
-        using (FileStream fs = new FileStream(outputFilePath, FileMode.Create)) // Открываем файл для записи
+        XmlSerializer serializer = new XmlSerializer(typeof(List<Applicant>));
+        using (FileStream fs = new FileStream(outputFilePath, FileMode.Create))
         {
-            serializer.Serialize(fs, sortedApplicants); // Сериализуем и сохраняем список абитуриентов в XML файл
+            serializer.Serialize(fs, sortedApplicants);
         }
 
-        Console.WriteLine("Допущенные абитуриенты успешно сохранены в XML файл."); // Выводим сообщение об успешной записи данных
+        Console.WriteLine("Допущенные абитуриенты успешно сохранены в XML файл.");
     }
 }
 
-public class Applicant
+    public class Applicant
 {
     //public string LastName { get; set; }
     //public string FirstName { get; set; }
