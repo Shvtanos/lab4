@@ -1,4 +1,4 @@
-﻿using lab4;
+using lab4;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -66,10 +66,13 @@ namespace lab4
 
                 // Задание 5: Ввод данных абитуриентов из файла и сохранение в XML
                 string inputFilePath = "applicants.txt";
-                string outputFilePath = "admittedApplicants.xml";
-                Console.WriteLine("\nОбработка данных абитуриентов:");
+                string outputFilePath = "allowedApplicants.xml";
+
+                // Генерация исходного файла с данными абитуриентов с вводом пользователя
+                Collection.GenerateApplicantData(inputFilePath);
+
+                // Обработка абитуриентов и запись результата в XML файл
                 Collection.ProcessApplicants(inputFilePath, outputFilePath);
-                Console.WriteLine("Допущенные абитуриенты записаны в файл " + outputFilePath);
             }
             catch (Exception ex)
             {
